@@ -27,8 +27,6 @@ export default function StudentPortalPage() {
   return (
     <SiteShell>
       <PageHero
-        title="Student Portal"
-        description="View enrolled students with profile cards styled for quick reference."
         crumbs={[
           { href: "/", label: "Home" },
           { href: "/student-portal", label: "Student Portal" },

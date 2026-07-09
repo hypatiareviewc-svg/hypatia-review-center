@@ -5,8 +5,8 @@ export function PageHero({
   description,
   crumbs,
 }: {
-  title: string;
-  description: string;
+  title?: string;
+  description?: string;
   crumbs: Array<{ href: string; label: string }>;
 }) {
   return (
@@ -24,12 +24,16 @@ export function PageHero({
             ))}
           </ol>
         </nav>
-        <h1 className="mt-5 max-w-3xl font-display text-4xl font-semibold leading-tight sm:text-5xl">
-          {title}
-        </h1>
-        <p className="mt-4 max-w-2xl text-sm leading-7 text-[var(--muted)] sm:text-base">
-          {description}
-        </p>
+        {title ? (
+          <h1 className="mt-5 max-w-3xl font-display text-4xl font-semibold leading-tight sm:text-5xl">
+            {title}
+          </h1>
+        ) : null}
+        {description ? (
+          <p className="mt-4 max-w-2xl text-sm leading-7 text-[var(--muted)] sm:text-base">
+            {description}
+          </p>
+        ) : null}
       </div>
     </section>
   );
