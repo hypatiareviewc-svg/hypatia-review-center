@@ -1,0 +1,47 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model EnrollmentApplication {
+  id                   String   @id @default(cuid())
+  applicationNumber    String   @unique
+  photoName            String?
+  photoUrl             String?
+  lastName             String
+  firstName            String
+  middleName           String
+  street               String
+  barangay             String
+  cityMunicipality     String
+  province             String
+  zipcode              String
+  email                String
+  contactNumber        String
+  schoolName           String
+  schoolAddress        String
+  yearGraduated        String
+  programCourse        String
+  guardianFullName     String
+  guardianAddress      String
+  guardianContactNumber String
+  status               EnrollmentStatus @default(PENDING)
+  submittedAt          DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+enum EnrollmentStatus {
+  PENDING
+  REVIEWING
+  APPROVED
+  REJECTED
+}

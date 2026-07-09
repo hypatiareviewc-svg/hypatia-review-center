@@ -1,26 +1,208 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f4f1e8;
+  --foreground: #101828;
+  --muted: #5a6578;
+  --surface: #ffffff;
+  --surface-strong: #eef0f3;
+  --surface-soft: #faf8f3;
+  --border: rgba(16, 24, 40, 0.12);
+  --primary: #14294b;
+  --primary-contrast: #f9fbff;
+  --secondary: #a88237;
+  --ring: rgba(20, 41, 75, 0.24);
+}
+
+[data-theme="dark"] {
+  --background: #091120;
+  --foreground: #f6f7fb;
+  --muted: #a8b3c6;
+  --surface: #101b30;
+  --surface-strong: #17243d;
+  --surface-soft: #0d1628;
+  --border: rgba(255, 255, 255, 0.12);
+  --primary: #d9e4ff;
+  --primary-contrast: #091120;
+  --secondary: #d8b66a;
+  --ring: rgba(217, 228, 255, 0.22);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-inter);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: smooth;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+}
+
+h1,
+h2,
+h3,
+h4,
+.font-display {
+  font-family: var(--font-cormorant), Georgia, serif;
+}
+
+::selection {
+  background: rgba(168, 130, 55, 0.28);
+}
+
+.container-shell {
+  width: min(1120px, calc(100% - 2rem));
+  margin-inline: auto;
+}
+
+.surface-card {
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  border: 1px solid var(--border);
+  box-shadow: 0 16px 38px rgba(16, 24, 40, 0.06);
+}
+
+.site-grid {
+  background-image: linear-gradient(rgba(16, 24, 40, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(16, 24, 40, 0.025) 1px, transparent 1px);
+  background-size: 64px 64px;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.focus-ring {
+  outline: none;
+}
+
+.focus-ring:focus-visible {
+  box-shadow: 0 0 0 4px var(--ring);
+}
+
+@keyframes submit-progress {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(250%);
+  }
+}
+
+.submit-progress-bar {
+  width: 40%;
+  animation: submit-progress 1.4s ease-in-out infinite;
+}
+
+@keyframes mobile-nav-backdrop-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes mobile-nav-panel-in {
+  from {
+    opacity: 0.92;
+    transform: translateX(100%);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.mobile-nav-backdrop {
+  animation: mobile-nav-backdrop-in 0.24s ease-out both;
+}
+
+.mobile-nav-panel {
+  animation: mobile-nav-panel-in 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.splash-3d-scene {
+  perspective: 1200px;
+  perspective-origin: 50% 42%;
+}
+
+.splash-3d-card,
+.splash-depth-plane {
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobile-nav-backdrop,
+  .mobile-nav-panel {
+    animation: none;
+  }
+
+  .splash-3d-card,
+  .splash-depth-plane {
+    will-change: auto;
+  }
+}
+
+.prose-tight p + p {
+  margin-top: 0.9rem;
+}
+
+@media print {
+  @page {
+    margin: 0.5in;
+  }
+
+  body {
+    background: #ffffff !important;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  .admissions-layout,
+  .admissions-layout * {
+    visibility: hidden;
+  }
+
+  .print-sheet,
+  .print-sheet * {
+    visibility: visible;
+  }
+
+  .print-sheet {
+    position: fixed;
+    inset: 0;
+    padding: 0;
+    margin: 0;
+    border: 0 !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+  }
+
+  .print-form {
+    position: absolute;
+    inset: 0;
+    margin: 0 auto;
+    max-width: 7.5in !important;
+    width: 100%;
+    padding: 0 !important;
+    background: #ffffff !important;
+  }
 }
