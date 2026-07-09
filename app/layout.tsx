@@ -38,7 +38,7 @@ export const metadata: Metadata = {
       "Excellence Today. Licensed Tomorrow. A premium review center for aspiring criminologists.",
   },
   icons: {
-    icon: "/favicon.ico",
+    icon: "/logo1.png",
   },
 };
 
