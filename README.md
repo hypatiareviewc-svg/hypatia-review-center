@@ -46,3 +46,4 @@ npm run lint
 ```
 
 The project is configured for static generation and Vercel deployment.
+# hypatia-review-center
