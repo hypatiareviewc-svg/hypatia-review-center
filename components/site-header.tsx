@@ -10,7 +10,7 @@ import { quickSearchItems } from "@/lib/site-content";
 
 type LinkItem =
   | { href: string; label: string; items?: never }
-  | { label: string; items: { href: string; label: string }[] };
+  | { label: string; items: readonly { href: string; label: string }[] };
 
 export function SiteHeader({ links }: { links: readonly LinkItem[] }) {
   const pathname = usePathname();
@@ -49,7 +49,7 @@ export function SiteHeader({ links }: { links: readonly LinkItem[] }) {
 
     const aboutLink = links.find((link) => "items" in link);
     if (aboutLink && "items" in aboutLink) {
-      setMobileAboutOpen(aboutLink.items.some((item) => item.href === pathname));
+      setMobileAboutOpen(aboutLink.items!.some((item) => item.href === pathname));
     }
   }, [mobileMenuOpen, pathname, links]);
 
@@ -88,7 +88,7 @@ export function SiteHeader({ links }: { links: readonly LinkItem[] }) {
         item.label.toLowerCase().includes(normalized) ||
         item.description.toLowerCase().includes(normalized)
       );
-    });
+    }) as unknown as typeof quickSearchItems;
   }, [query]);
 
   const toggleTheme = () => {
@@ -147,7 +147,7 @@ export function SiteHeader({ links }: { links: readonly LinkItem[] }) {
                     onBlur={() => setTimeout(() => setAboutOpen(false), 150)}
                     className={[
                       "focus-ring inline-flex items-center gap-1 py-2 text-[0.8rem] font-medium tracking-[0.08em] uppercase transition",
-                      link.items.some((item) => isActive(item.href))
+                      link.items!.some((item) => isActive(item.href))
                         ? "text-[var(--foreground)]"
                         : "text-[var(--muted)] hover:text-[var(--foreground)]",
                     ].join(" ")}
@@ -159,7 +159,7 @@ export function SiteHeader({ links }: { links: readonly LinkItem[] }) {
                   </button>
                   {aboutOpen ? (
                     <div className="absolute left-0 top-full z-20 mt-3 w-56 overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-[0_24px_60px_rgba(16,24,40,0.16)]">
-                      {link.items.map((item) => (
+                      {link.items!.map((item) => (
                         <Link
                           key={item.href}
                           href={item.href}
@@ -406,7 +406,7 @@ function MobileNavDrawer({
                     onClick={onToggleAbout}
                     className={[
                       "focus-ring flex w-full items-center justify-between rounded-2xl px-4 py-3.5 text-left transition",
-                      link.items.some((item) => isActive(item.href)) || mobileAboutOpen
+                      link.items!.some((item) => isActive(item.href)) || mobileAboutOpen
                         ? "bg-[var(--surface-soft)] text-[var(--foreground)]"
                         : "text-[var(--muted)] hover:bg-[var(--surface-soft)] hover:text-[var(--foreground)]",
                     ].join(" ")}
@@ -428,7 +428,7 @@ function MobileNavDrawer({
                   >
                     <ul className="overflow-hidden">
                       <li className="grid gap-1 border-l-2 border-[var(--secondary)]/35 py-2 pl-3">
-                        {link.items.map((item) => (
+                        {link.items!.map((item) => (
                           <Link
                             key={item.href}
                             href={item.href}

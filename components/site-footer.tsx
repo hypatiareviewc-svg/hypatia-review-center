@@ -5,9 +5,9 @@ import { NewsletterForm } from "@/components/newsletter-form";
 
 type LinkItem =
   | { href: string; label: string; items?: never }
-  | { label: string; items: { href: string; label: string }[] };
+  | { label: string; items: readonly { href: string; label: string }[] };
 
-type GroupedLink = { label: string; items: { href: string; label: string }[] };
+type GroupedLink = { label: string; items: readonly { href: string; label: string }[] };
 type SoloLink = { href: string; label: string };
 
 export function SiteFooter({ links }: { links: readonly LinkItem[] }) {

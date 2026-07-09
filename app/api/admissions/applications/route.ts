@@ -14,6 +14,41 @@ function buildApplicationNumber() {
   return `HRC-APP-${stamp}-${suffix}`;
 }
 
+export async function GET() {
+  const enrollments = await prisma.enrollmentApplication.findMany({
+    orderBy: { submittedAt: "desc" },
+  });
+
+  const records = enrollments.map((e) => ({
+    id: e.id,
+    applicationNumber: e.applicationNumber,
+    photoName: e.photoName,
+    photoUrl: e.photoUrl,
+    lastName: e.lastName,
+    firstName: e.firstName,
+    middleName: e.middleName,
+    street: e.street,
+    barangay: e.barangay,
+    cityMunicipality: e.cityMunicipality,
+    province: e.province,
+    zipcode: e.zipcode,
+    email: e.email,
+    contactNumber: e.contactNumber,
+    schoolName: e.schoolName,
+    schoolAddress: e.schoolAddress,
+    yearGraduated: e.yearGraduated,
+    programCourse: e.programCourse,
+    guardianFullName: e.guardianFullName,
+    guardianAddress: e.guardianAddress,
+    guardianContactNumber: e.guardianContactNumber,
+    status: e.status,
+    submittedAt: e.submittedAt.toISOString(),
+    updatedAt: e.updatedAt.toISOString(),
+  }));
+
+  return NextResponse.json(records);
+}
+
 export async function POST(request: Request) {
   const payload = await request.json();
   const result = applicationSchema.safeParse(payload);
