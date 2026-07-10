@@ -20,7 +20,7 @@ function StudentPhoto({ student }: { student: EnrollmentRecord }) {
         alt={studentName}
         fill
         unoptimized
-        className="object-cover object-top"
+        className="object-cover object-center"
       />
     );
   }
@@ -57,7 +57,7 @@ export function StudentGrid({ students }: { students: EnrollmentRecord[] }) {
 
         return (
           <article key={student.id} className="surface-card overflow-hidden rounded-[1.75rem]">
-            <div className="relative h-40 w-full sm:h-44">
+            <div className="relative aspect-[4/5] w-full sm:aspect-[3/4]">
               <StudentPhoto student={student} />
               <span
                 className={[

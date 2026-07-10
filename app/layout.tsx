@@ -21,12 +21,12 @@ export const metadata: Metadata = {
     template: "%s | Hypatia Review Center",
   },
   description:
-    "Hypatia Review Center prepares aspiring criminologists for the Licensure Examination for Criminologists through disciplined review programs, expert lecturers, and a trusted institutional experience.",
+    "Hypatia Review Center is a premier review institution dedicated to preparing aspiring criminologists for the Licensure Examination for Criminologists (LEC). With expert lecturers, comprehensive review programs, and a results-driven approach, we equip future licensed criminologists with the knowledge, confidence, and discipline needed to excel in the board exam and beyond.",
   applicationName: "Hypatia Review Center",
   openGraph: {
     title: "Hypatia Review Center",
     description:
-      "Excellence Today. Licensed Tomorrow. A premium review center for aspiring criminologists.",
+      "Hypatia Review Center is a premier review institution dedicated to preparing aspiring criminologists for the Licensure Examination for Criminologists (LEC). Expert lecturers, comprehensive programs, and a results-driven approach to help you become a licensed criminologist.",
     url: "/",
     siteName: "Hypatia Review Center",
     type: "website",
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Hypatia Review Center",
     description:
-      "Excellence Today. Licensed Tomorrow. A premium review center for aspiring criminologists.",
+      "Hypatia Review Center is a premier review institution dedicated to preparing aspiring criminologists for the Licensure Examination for Criminologists (LEC). Expert lecturers, comprehensive programs, and a results-driven approach to help you become a licensed criminologist.",
   },
   icons: {
     icon: "/logo1.png",

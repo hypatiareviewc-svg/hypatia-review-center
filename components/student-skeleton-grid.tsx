@@ -37,7 +37,7 @@ export function SkeletonCard({ index }: { index: number }) {
       className="surface-card overflow-hidden rounded-[1.75rem]"
     >
       {/* Photo placeholder */}
-      <div className="relative h-40 w-full bg-[var(--surface)] sm:h-44">
+      <div className="relative aspect-[4/5] w-full bg-[var(--surface)] sm:aspect-[3/4]">
         <SkeletonPulse className="absolute inset-0 bg-[linear-gradient(160deg,color-mix(in_srgb,var(--primary)_88%,#000),color-mix(in_srgb,var(--primary)_62%,var(--secondary)))] opacity-40" />
         <div className="absolute inset-0 flex items-center justify-center">
           <SkeletonPulse className="h-16 w-16 rounded-full border border-white/20 bg-white/10" />

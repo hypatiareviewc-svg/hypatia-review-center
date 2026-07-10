@@ -9,17 +9,14 @@ export default function StudentPortalLoading() {
   return (
     <SiteShell>
       <PageHero
-        title="Student Portal"
-        description="View enrolled students with profile cards styled for quick reference."
         crumbs={[
           { href: "/", label: "Home" },
           { href: "/student-portal", label: "Student Portal" },
         ]}
       />
       <PageSection
-        eyebrow="Student Profiles"
-        title="Enrolled students from the admissions records."
-        description="Each card shows the student photo, name, course or program, and school graduated, with an enrollment badge on the profile photo."
+        title="Students who have enrolled at Hypatia"
+        description="Browse through our enrolled students and get to know the future professionals of their respective fields."
       >
         <motion.div
           initial="hidden"
