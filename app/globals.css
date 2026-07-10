@@ -211,6 +211,36 @@ h4,
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
+
+  /* ── ID card print layout ── */
+  #id-print-root {
+    display: flex !important;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8mm;
+    padding: 8mm;
+    visibility: visible !important;
+    position: fixed;
+    inset: 0;
+    background: #fff;
+    z-index: 99999;
+  }
+
+  #id-print-root * {
+    visibility: visible !important;
+  }
+
+  .id-print-pair {
+    display: flex;
+    gap: 6mm;
+    page-break-inside: avoid;
+  }
+
+  .id-card-face {
+    box-shadow: none !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
 }
 
 /* Enrollment confirmation form — watermark + screen presentation */

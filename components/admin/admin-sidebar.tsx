@@ -7,7 +7,9 @@ import {
   LayoutDashboard,
   GraduationCap,
   Wallet,
+  IdCard,
   CalendarDays,
+  ClipboardCheck,
   Settings,
   LogOut,
   X,
@@ -23,7 +25,9 @@ const navItems: NavItem[] = [
   { href: "/admin/dashboard", label: "Dashboard", icon: <LayoutDashboard className="h-[1.15rem] w-[1.15rem]" /> },
   { href: "/admin/enrollments", label: "Enrollment", icon: <GraduationCap className="h-[1.15rem] w-[1.15rem]" /> },
   { href: "/admin/financial", label: "Financial Account", icon: <Wallet className="h-[1.15rem] w-[1.15rem]" /> },
+  { href: "/admin/id-generator", label: "ID Generator", icon: <IdCard className="h-[1.15rem] w-[1.15rem]" /> },
   { href: "/admin/calendar", label: "Calendar", icon: <CalendarDays className="h-[1.15rem] w-[1.15rem]" /> },
+  { href: "/admin/attendance", label: "Attendance", icon: <ClipboardCheck className="h-[1.15rem] w-[1.15rem]" /> },
   { href: "/admin/settings", label: "Settings", icon: <Settings className="h-[1.15rem] w-[1.15rem]" /> },
 ];
 

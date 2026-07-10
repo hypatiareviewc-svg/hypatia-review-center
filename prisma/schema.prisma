@@ -85,3 +85,59 @@ model AdminUser {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+model CalendarEvent {
+  id          String            @id @default(cuid())
+  title       String
+  description String?
+  type        CalendarEventType @default(OTHER)
+  startDate   DateTime
+  endDate     DateTime?
+  allDay      Boolean           @default(true)
+  location    String?
+  createdBy   String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@index([startDate])
+}
+
+enum CalendarEventType {
+  LECTURE
+  MOCK_BOARD
+  SEMINAR
+  ORIENTATION
+  HOLIDAY
+  DEADLINE
+  OTHER
+}
+
+model AttendanceSession {
+  id          String       @id @default(cuid())
+  title       String
+  description String?
+  sessionDate DateTime
+  createdBy   String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  records     AttendanceRecord[]
+
+  @@index([sessionDate])
+}
+
+model AttendanceRecord {
+  id                String            @id @default(cuid())
+  sessionId         String
+  session           AttendanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  enrollmentId      String
+  applicationNumber String
+  studentName       String
+  programCourse     String
+  photoUrl          String?
+  scannedAt         DateTime          @default(now())
+
+  @@unique([sessionId, enrollmentId])
+  @@index([sessionId])
+  @@index([enrollmentId])
+  @@index([scannedAt])
+}
