@@ -163,6 +163,26 @@ h4,
   margin-top: 0.9rem;
 }
 
+/* ── html5-qrcode overrides ── */
+/* Strip the library's default white background and controls so our dark UI shows cleanly */
+#qr-video-container {
+  background: #000 !important;
+}
+#qr-video-container video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  display: block !important;
+}
+#qr-video-container img[alt="Info icon"],
+#qr-video-container button[title="Stop Scanning"],
+#qr-video-container select,
+#qr-video-container span[id$="status"],
+#qr-video-container div[id$="header"],
+#qr-video-container div[id$="filescan"] {
+  display: none !important;
+}
+
 @media print {
   @page {
     margin: 0.5in;
