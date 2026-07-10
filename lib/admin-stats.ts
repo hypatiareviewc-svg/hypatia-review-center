@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { DEFAULT_TUITION } from "@/lib/financial";
 export { formatCurrency } from "@/lib/format";
 
 export type DashboardStats = {
@@ -11,7 +12,6 @@ export type DashboardStats = {
 };
 
 /** Default tuition fee when an enrollment has none assigned. */
-const DEFAULT_TUITION = 15000;
 
 function monthKey(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;

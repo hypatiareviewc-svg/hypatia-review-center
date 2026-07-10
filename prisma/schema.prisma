@@ -42,6 +42,23 @@ model EnrollmentApplication {
   amountPaid           Decimal? @db.Decimal(12, 2) @default(0)
   submittedAt          DateTime @default(now())
   updatedAt            DateTime @updatedAt
+  payments             Payment[]
+}
+
+model Payment {
+  id             String                @id @default(cuid())
+  enrollmentId   String
+  enrollment     EnrollmentApplication @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  amount         Decimal               @db.Decimal(12, 2)
+  method         PaymentMethod         @default(CASH)
+  reference      String?
+  notes          String?
+  recordedBy     String?
+  paidAt         DateTime              @default(now())
+  createdAt      DateTime              @default(now())
+
+  @@index([enrollmentId])
+  @@index([paidAt])
 }
 
 enum EnrollmentStatus {
@@ -49,6 +66,15 @@ enum EnrollmentStatus {
   REVIEWING
   APPROVED
   REJECTED
+}
+
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  GCASH
+  MAYA
+  CHECK
+  OTHER
 }
 
 model AdminUser {
