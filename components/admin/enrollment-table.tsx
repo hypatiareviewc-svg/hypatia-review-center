@@ -15,6 +15,7 @@ import {
   AlertTriangle,
   X,
   Loader2,
+  UserPlus,
 } from "lucide-react";
 import type { EnrollmentRecord } from "@/lib/enrollment-display";
 import {
@@ -24,6 +25,7 @@ import {
 } from "@/lib/enrollment-display";
 import { EnrollmentSkeleton } from "@/components/admin/enrollment-skeleton";
 import { EnrollmentDetailModal } from "@/components/admin/enrollment-detail-modal";
+import { AddStudentModal } from "@/components/admin/add-student-modal";
 
 type StatusFilter = "ALL" | "PENDING" | "REVIEWING" | "APPROVED" | "REJECTED";
 
@@ -56,6 +58,9 @@ export function EnrollmentTable() {
   // Delete confirmation
   const [deleteTarget, setDeleteTarget] = useState<EnrollmentRecord | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  // Add student modal
+  const [addOpen, setAddOpen] = useState(false);
 
   const fetchRecords = useCallback(async () => {
     setLoading(true);
@@ -150,9 +155,19 @@ export function EnrollmentTable() {
         </div>
 
         {/* Result count */}
-        <p className="ml-auto text-xs text-[var(--muted)]">
+        <p className="text-xs text-[var(--muted)]">
           {filtered.length} of {records.length} students
         </p>
+
+        {/* Add Student */}
+        <button
+          type="button"
+          onClick={() => setAddOpen(true)}
+          className="focus-ring ml-auto inline-flex h-9 items-center gap-2 rounded-full bg-[var(--primary)] px-4 text-xs font-semibold text-[var(--primary-contrast)] transition hover:opacity-95"
+        >
+          <UserPlus className="h-4 w-4" />
+          Add Student
+        </button>
       </div>
 
       {/* Error */}
@@ -339,6 +354,13 @@ export function EnrollmentTable() {
           setSelectedRecord(null);
         }}
         onSaved={handleSaved}
+      />
+
+      {/* Add student modal */}
+      <AddStudentModal
+        open={addOpen}
+        onClose={() => setAddOpen(false)}
+        onCreated={fetchRecords}
       />
 
       {/* Delete confirmation */}
