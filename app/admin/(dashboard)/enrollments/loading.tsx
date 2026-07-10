@@ -1,11 +1,7 @@
-"use client";
-
 import { GraduationCap } from "lucide-react";
-import { Suspense } from "react";
-import { EnrollmentTable } from "@/components/admin/enrollment-table";
 import { EnrollmentSkeleton } from "@/components/admin/enrollment-skeleton";
 
-export default function EnrollmentsPage() {
+export default function EnrollmentsLoading() {
   return (
     <div className="space-y-6">
       <div>
@@ -16,9 +12,7 @@ export default function EnrollmentsPage() {
           View and manage student enrollment applications.
         </p>
       </div>
-      <Suspense fallback={<EnrollmentSkeleton />}>
-        <EnrollmentTable />
-      </Suspense>
+      <EnrollmentSkeleton />
     </div>
   );
 }

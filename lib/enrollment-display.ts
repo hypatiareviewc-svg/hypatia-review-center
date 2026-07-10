@@ -26,6 +26,8 @@ export type EnrollmentRecord = {
   guardianAddress: string;
   guardianContactNumber: string;
   status: EnrollmentStatus;
+  tuitionFee: string | null;
+  amountPaid: string | null;
   submittedAt: string;
   updatedAt: string;
 };
