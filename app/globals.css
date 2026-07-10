@@ -205,4 +205,35 @@ h4,
     padding: 0 !important;
     background: #ffffff !important;
   }
+
+  .print-sheet,
+  .print-sheet * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
+
+/* Enrollment confirmation form — watermark + screen presentation */
+.hypatia-form {
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.hypatia-watermark {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent 0,
+    transparent 38px,
+    rgba(20, 41, 75, 0.035) 38px,
+    rgba(20, 41, 75, 0.035) 96px
+  );
+}
+
+.hypatia-watermark-text {
+  font-weight: 900;
+  letter-spacing: 0.28em;
+  color: rgba(20, 41, 75, 0.045);
+  white-space: nowrap;
+  line-height: 2.6;
+  font-size: clamp(2.5rem, 5vw, 3.75rem);
 }

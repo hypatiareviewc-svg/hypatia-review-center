@@ -8,6 +8,9 @@ export type EnrollmentRecord = {
   lastName: string;
   firstName: string;
   middleName: string;
+  sex: string | null;
+  birthday: string | null;
+  birthPlace: string | null;
   street: string;
   barangay: string;
   cityMunicipality: string;

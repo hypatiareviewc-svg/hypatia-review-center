@@ -1,11 +1,14 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Download, FileText, ImageOff, Loader2, Upload, UserRound } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Download, FileText, ImageOff, Loader2, Upload, UserRound, X } from "lucide-react";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { type UseFormRegisterReturn, useForm } from "react-hook-form";
 import { admissionsSchema, type AdmissionsFormValues } from "@/lib/admissions-schema";
+import { PROGRAM_COURSES } from "@/lib/program-courses";
+import { SearchableSelect } from "@/components/searchable-select";
 
 type SubmittedForm = AdmissionsFormValues & {
   applicationNumber: string;
@@ -37,15 +40,18 @@ export function AdmissionsForm() {
   const [photoName, setPhotoName] = useState<string | undefined>();
   const [photoFile, setPhotoFile] = useState<File | undefined>();
   const [photoPreview, setPhotoPreview] = useState<string | undefined>();
+  const [modalOpen, setModalOpen] = useState(false);
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
     reset,
   } = useForm<AdmissionsFormValues>({ resolver: zodResolver(admissionsSchema) });
 
   const onSubmit = handleSubmit(async (values) => {
     setSubmitError(null);
+    setModalOpen(true);
 
     try {
       const photoDataUrl = photoFile ? await fileToDataUrl(photoFile) : undefined;
@@ -84,11 +90,17 @@ export function AdmissionsForm() {
       setPhotoPreview(undefined);
     } catch {
       setSubmitError("We could not save your application. Please check your connection and try again.");
+      setModalOpen(false);
     }
   });
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleCloseModal = () => {
+    setModalOpen(false);
+    setSubmitted(null);
   };
 
   const photoField = register("photo", {
@@ -115,41 +127,37 @@ export function AdmissionsForm() {
   }, [photoPreview]);
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr] admissions-layout print:block">
-      <form onSubmit={onSubmit} className="surface-card relative overflow-hidden rounded-[2rem] p-6 sm:p-8 print:hidden">
-        {isSubmitting ? <FormSubmitOverlay /> : null}
-
-        <div className="flex items-start justify-between gap-4">
+    <div className="admissions-layout">
+      <form onSubmit={onSubmit} className="surface-card relative overflow-hidden rounded-[2rem] p-5 sm:p-8 print:hidden">
+        {/* Header */}
+        <div className="grid gap-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[var(--secondary)]">
               Admissions Form
             </p>
-            <h2 className="mt-2 font-display text-3xl font-semibold">Enrollment Application</h2>
-            <div className="mt-4 max-w-2xl rounded-3xl border border-[var(--border)] bg-[var(--surface-soft)] p-4 text-sm leading-7 text-[var(--muted)]">
-              <p className="font-medium text-[var(--foreground)]">Before you start:</p>
-              <ul className="mt-2 grid gap-1.5 pl-4">
-                <li>Upload a clear 2x2 photo.</li>
-                <li>Fill out all required personal, school, and guardian details.</li>
-                <li>Review your entries, then submit the form.</li>
-                <li>Print the confirmation sheet and bring it to admissions.</li>
-              </ul>
-            </div>
+            <h2 className="mt-2 font-display text-2xl font-semibold sm:text-3xl">Enrollment Application</h2>
           </div>
-          <div className="hidden rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 text-right text-xs text-[var(--muted)] sm:block">
-            <span className="block font-semibold text-[var(--foreground)]">Student ID</span>
-            <span>Auto-generated after submit</span>
+          <div className="max-w-2xl rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-4 text-sm leading-7 text-[var(--muted)]">
+            <p className="font-medium text-[var(--foreground)]">Before you start:</p>
+            <ul className="mt-2 grid gap-1.5 pl-4">
+              <li>Upload a clear 2x2 photo.</li>
+              <li>Fill out all required personal, school, and guardian details.</li>
+              <li>Review your entries, then submit the form.</li>
+              <li>Print the confirmation sheet and bring it to admissions.</li>
+            </ul>
           </div>
         </div>
 
-        <div className="mt-8 grid gap-8">
+        <div className="mt-6 grid gap-7 sm:mt-8 sm:gap-8">
+          {/* Photo Upload */}
           <section className="grid gap-4">
             <div className="flex items-center gap-2">
               <Upload className="h-4 w-4 text-[var(--secondary)]" />
-              <h3 className="text-sm font-semibold uppercase tracking-[0.24em] text-[var(--foreground)]">Photo Upload</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--foreground)] sm:text-sm">Photo Upload</h3>
             </div>
-            <div className="grid gap-5 lg:grid-cols-[auto_1fr] lg:items-center">
-              <div className="flex justify-center lg:justify-start">
-              <PhotoFrame preview={photoPreview} name={photoName} />
+            <div className="grid gap-5 sm:grid-cols-[auto_1fr] sm:items-center">
+              <div className="flex justify-center sm:justify-start">
+                <PhotoFrame preview={photoPreview} name={photoName} />
               </div>
 
               <div className="grid gap-3">
@@ -175,15 +183,26 @@ export function AdmissionsForm() {
             </div>
           </section>
 
+          {/* Student Information */}
           <section className="grid gap-4">
             <div className="flex items-center gap-2">
               <FileText className="h-4 w-4 text-[var(--secondary)]" />
-              <h3 className="text-sm font-semibold uppercase tracking-[0.24em] text-[var(--foreground)]">Student Information</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--foreground)] sm:text-sm">Student Information</h3>
             </div>
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <Field label="Last Name" error={errors.lastName?.message} register={register("lastName")} />
               <Field label="First Name" error={errors.firstName?.message} register={register("firstName")} />
               <Field label="Middle Name" error={errors.middleName?.message} register={register("middleName")} />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <SelectField
+                label="Sex"
+                error={errors.sex?.message}
+                register={register("sex")}
+                options={["Male", "Female"]}
+              />
+              <Field label="Birthday" type="date" error={errors.birthday?.message} register={register("birthday")} />
+              <Field label="Birth Place" error={errors.birthPlace?.message} register={register("birthPlace")} />
             </div>
             <div className="grid gap-4">
               <div className="grid gap-2 text-sm">
@@ -203,19 +222,33 @@ export function AdmissionsForm() {
             </div>
           </section>
 
+          {/* School Graduated */}
           <section className="grid gap-4">
-            <h3 className="text-sm font-semibold uppercase tracking-[0.24em] text-[var(--foreground)]">School Graduated</h3>
+            <h3 className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--foreground)] sm:text-sm">School Graduated</h3>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Name of School" error={errors.schoolName?.message} register={register("schoolName")} />
               <Field label="School Address" error={errors.schoolAddress?.message} register={register("schoolAddress")} />
               <Field label="Year Graduated" error={errors.yearGraduated?.message} register={register("yearGraduated")} />
-              <Field label="Program / Course" error={errors.programCourse?.message} register={register("programCourse")} />
             </div>
+            <SearchableSelect
+              label="Program / Course"
+              options={PROGRAM_COURSES}
+              register={register("programCourse")}
+              onValueChange={(value) =>
+                setValue("programCourse", value, {
+                  shouldValidate: true,
+                  shouldDirty: true,
+                })
+              }
+              error={errors.programCourse?.message}
+              placeholder="Search your course..."
+            />
           </section>
 
+          {/* Guardian Information */}
           <section className="grid gap-4">
-            <h3 className="text-sm font-semibold uppercase tracking-[0.24em] text-[var(--foreground)]">Guardian Information</h3>
-            <div className="grid gap-4 sm:grid-cols-3">
+            <h3 className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--foreground)] sm:text-sm">Guardian Information</h3>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <Field label="Full Name" error={errors.guardianFullName?.message} register={register("guardianFullName")} />
               <Field label="Address" error={errors.guardianAddress?.message} register={register("guardianAddress")} />
               <Field label="Contact Number" error={errors.guardianContactNumber?.message} register={register("guardianContactNumber")} />
@@ -223,7 +256,8 @@ export function AdmissionsForm() {
           </section>
         </div>
 
-        <div className="mt-8 flex flex-wrap items-center gap-3">
+        {/* Submit */}
+        <div className="mt-7 flex flex-wrap items-center gap-3 sm:mt-8">
           <button
             type="submit"
             disabled={isSubmitting}
@@ -249,82 +283,172 @@ export function AdmissionsForm() {
         </div>
       </form>
 
-      <aside className="surface-card rounded-[2rem] p-6 sm:p-8 print:rounded-none print:border-0 print:shadow-none print-sheet">
-        <div className="print:hidden">
-          <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[var(--secondary)]">Enrollment Output</p>
-          <h3 className="mt-2 font-display text-2xl font-semibold">Printable Enrollment Form</h3>
-          <p className="mt-3 text-sm leading-7 text-[var(--muted)]">
-            After submitting, download or print the generated form and bring it to the staff for enrollment confirmation.
-          </p>
-          {isSubmitting ? (
-            <EnrollmentOutputLoading />
-          ) : submitted ? (
-            <button
-              type="button"
-              onClick={handlePrint}
-              className="focus-ring mt-5 inline-flex h-11 items-center gap-2 rounded-full bg-[var(--primary)] px-5 text-sm font-semibold text-[var(--primary-contrast)] transition hover:opacity-95"
-            >
-              <Download className="h-4 w-4" />
-              Download PDF Form
-            </button>
-          ) : (
-            <div className="mt-5 rounded-3xl border border-dashed border-[var(--border)] bg-[var(--surface-soft)] p-5 text-sm text-[var(--muted)]">
-              The printable form will appear here after submit.
-            </div>
-          )}
-        </div>
+      {/* Modal with skeleton loading → printable form */}
+      <SubmissionModal
+        open={modalOpen}
+        isSubmitting={isSubmitting}
+        submitted={submitted}
+        onClose={handleCloseModal}
+        onPrint={handlePrint}
+      />
 
-        {submitted ? (
-          <div className="mt-6 print:mt-0">
-            <PrintableForm submitted={submitted} />
-          </div>
-        ) : null}
-      </aside>
+      {/* Print-only output */}
+      {submitted ? (
+        <div className="hidden print:block">
+          <ConfirmationForm submitted={submitted} />
+        </div>
+      ) : null}
     </div>
   );
 }
 
-function FormSubmitOverlay() {
+function SubmissionModal({
+  open,
+  isSubmitting,
+  submitted,
+  onClose,
+  onPrint,
+}: {
+  open: boolean;
+  isSubmitting: boolean;
+  submitted: SubmittedForm | null;
+  onClose: () => void;
+  onPrint: () => void;
+}) {
+  useEffect(() => {
+    if (!open) return;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [open]);
+
   return (
-    <div
-      className="absolute inset-0 z-10 flex items-center justify-center rounded-[2rem] bg-[color-mix(in_srgb,var(--surface)_88%,transparent)] backdrop-blur-[3px]"
-      aria-live="polite"
-      aria-busy="true"
-    >
-      <div className="mx-4 max-w-sm rounded-3xl border border-[var(--border)] bg-[var(--surface)] px-6 py-7 text-center shadow-lg">
-        <div className="relative mx-auto flex h-14 w-14 items-center justify-center">
+    <AnimatePresence>
+      {open ? (
+        <motion.div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 print:hidden"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.25 }}
+        >
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={isSubmitting ? undefined : onClose}
+            aria-hidden="true"
+          />
+
+          {/* Modal content */}
+          <motion.div
+            className="relative z-10 w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-[2rem] border border-[var(--border)] bg-[var(--surface)] shadow-2xl"
+            initial={{ opacity: 0, scale: 0.94, y: 24 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.96, y: 16 }}
+            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Enrollment application result"
+          >
+            {/* Close button */}
+            {!isSubmitting ? (
+              <button
+                type="button"
+                onClick={onClose}
+                className="absolute right-4 top-4 z-20 flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--background)] text-[var(--muted)] transition hover:text-[var(--foreground)]"
+                aria-label="Close"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            ) : null}
+
+            {isSubmitting || !submitted ? <ModalSkeleton /> : (
+              <div>
+                {/* Success header */}
+                <div className="border-b border-[var(--border)] bg-gradient-to-br from-emerald-50 to-[var(--surface-soft)] p-6 text-center sm:p-8 print:hidden">
+                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100">
+                    <svg className="h-7 w-7 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <h3 className="mt-4 font-display text-2xl font-semibold text-[var(--foreground)]">
+                    Application Submitted!
+                  </h3>
+                  <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                    Your enrollment application has been saved. Download or print your confirmation form below.
+                  </p>
+                  <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm">
+                    <span className="text-[var(--muted)]">Application No:</span>
+                    <span className="font-semibold text-[var(--foreground)]">{submitted.applicationNumber}</span>
+                  </div>
+                </div>
+
+                {/* Generated enrollment form — visible in modal and in print */}
+                <div className="overflow-y-auto px-5 py-6 sm:px-8 sm:py-8">
+                  <ConfirmationForm submitted={submitted} inModal />
+                </div>
+
+                {/* Actions */}
+                <div className="flex flex-wrap justify-center gap-3 border-t border-[var(--border)] p-6 sm:p-8 print:hidden">
+                  <button
+                    type="button"
+                    onClick={onPrint}
+                    className="focus-ring inline-flex h-11 items-center gap-2 rounded-full bg-[var(--primary)] px-6 text-sm font-semibold text-[var(--primary-contrast)] transition hover:opacity-95"
+                  >
+                    <Download className="h-4 w-4" />
+                    Download PDF Form
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="focus-ring inline-flex h-11 items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--background)] px-6 text-sm font-semibold text-[var(--foreground)] transition hover:opacity-95"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            )}
+          </motion.div>
+        </motion.div>
+      ) : null}
+    </AnimatePresence>
+  );
+}
+
+function ModalSkeleton() {
+  return (
+    <div className="p-6 sm:p-8">
+      <div className="flex flex-col items-center text-center">
+        <div className="relative flex h-14 w-14 items-center justify-center">
           <span className="absolute inset-0 animate-ping rounded-full bg-[var(--primary)]/10" />
           <span className="absolute inset-2 rounded-full border border-[var(--primary)]/15" />
           <Loader2 className="relative h-7 w-7 animate-spin text-[var(--primary)]" aria-hidden="true" />
         </div>
-        <p className="mt-5 font-medium text-[var(--foreground)]">Saving your application</p>
-        <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-          Please wait while we store your enrollment details in our records.
-        </p>
-        <div className="mt-5 h-1 overflow-hidden rounded-full bg-[var(--surface-soft)]">
-          <span className="submit-progress-bar block h-full rounded-full bg-[var(--secondary)]" />
-        </div>
+        <div className="mt-5 h-5 w-48 animate-pulse rounded-full bg-[var(--border)]" />
+        <div className="mt-3 h-3 w-64 animate-pulse rounded-full bg-[var(--border)]" />
       </div>
-    </div>
-  );
-}
 
-function EnrollmentOutputLoading() {
-  return (
-    <div className="mt-5 rounded-3xl border border-[var(--border)] bg-[var(--surface-soft)] p-5">
-      <div className="flex items-center gap-3">
-        <Loader2 className="h-5 w-5 shrink-0 animate-spin text-[var(--secondary)]" aria-hidden="true" />
-        <div>
-          <p className="text-sm font-medium text-[var(--foreground)]">Generating enrollment form</p>
-          <p className="text-xs text-[var(--muted)]">Your printable confirmation will appear shortly.</p>
+      <div className="mt-8 space-y-4" aria-hidden="true">
+        <div className="flex items-center justify-between rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+          <div className="h-3 w-24 animate-pulse rounded-full bg-[var(--border)]" />
+          <div className="h-3 w-32 animate-pulse rounded-full bg-[var(--border)]" />
         </div>
+        {[0, 1, 2, 3, 4].map((i) => (
+          <div
+            key={i}
+            className="h-12 animate-pulse rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)]"
+            style={{ width: `${85 + Math.sin(i) * 12}%` }}
+          />
+        ))}
       </div>
-      <div className="mt-5 grid gap-3" aria-hidden="true">
-        <div className="h-3 w-2/5 animate-pulse rounded-full bg-[var(--border)]" />
-        <div className="h-3 w-full animate-pulse rounded-full bg-[var(--border)]" />
-        <div className="h-3 w-11/12 animate-pulse rounded-full bg-[var(--border)]" />
-        <div className="h-3 w-4/5 animate-pulse rounded-full bg-[var(--border)]" />
-      </div>
+
+      <p className="mt-6 text-center text-sm font-medium text-[var(--foreground)]">
+        Saving your application
+      </p>
+      <p className="mt-1 text-center text-xs text-[var(--muted)]">
+        Please wait while we store your enrollment details in our records.
+      </p>
     </div>
   );
 }
@@ -353,52 +477,239 @@ function Field({
   );
 }
 
-function PrintableForm({ submitted }: { submitted: SubmittedForm }) {
-  const fullName = [submitted.lastName, submitted.firstName, submitted.middleName].join(", ");
+function SelectField({
+  label,
+  register,
+  error,
+  options,
+}: {
+  label: string;
+  register: UseFormRegisterReturn;
+  error?: string;
+  options: string[];
+}) {
+  return (
+    <label className="grid gap-2 text-sm">
+      <span className="font-medium">{label}</span>
+      <select
+        className="focus-ring rounded-2xl border border-[var(--border)] bg-[var(--background)] px-4 py-3 text-sm"
+        {...register}
+      >
+        <option value="">Select...</option>
+        {options.map((opt) => (
+          <option key={opt} value={opt}>
+            {opt}
+          </option>
+        ))}
+      </select>
+      {error ? <span className="text-xs text-red-400">{error}</span> : null}
+    </label>
+  );
+}
+
+function ConfirmationForm({
+  submitted,
+  inModal = false,
+}: {
+  submitted: SubmittedForm;
+  inModal?: boolean;
+}) {
+  const fullName = [submitted.lastName, submitted.firstName, submitted.middleName]
+    .filter(Boolean)
+    .join(", ");
+  const fullAddress = [
+    submitted.street,
+    submitted.barangay,
+    submitted.cityMunicipality,
+    submitted.province,
+    submitted.zipcode,
+  ]
+    .filter(Boolean)
+    .join(", ");
 
   return (
-    <section className="print-form mx-auto max-w-3xl rounded-[2rem] border border-[var(--border)] bg-white p-8 text-slate-900 shadow-none print:max-w-none print:border-0 print:p-0">
-      <div className="flex items-start justify-between gap-4 border-b border-slate-300 pb-5">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Hypatia Review Center</p>
-          <h4 className="mt-2 font-serif text-3xl font-semibold">Enrollment Confirmation Form</h4>
-          <p className="mt-1 text-sm text-slate-600">Please present this form to the staff for enrollment confirmation.</p>
-        </div>
-        <div className="shrink-0">
-          <PhotoFrame preview={submitted.photoPreview} name={submitted.photoName} printMode />
-        </div>
+    <section
+      className={[
+        "hypatia-form print-sheet relative mx-auto w-full overflow-hidden rounded-2xl border border-slate-200 bg-white text-slate-900 shadow-sm",
+        inModal ? "max-w-3xl" : "print:max-w-none print:rounded-none print:border-0 print:shadow-none",
+      ].join(" ")}
+    >
+      {/* Decorative top band */}
+      <div className="relative h-2 w-full bg-gradient-to-r from-[#14294b] via-[#a88237] to-[#14294b]" />
+
+      {/* Watermark layer */}
+      <div
+        aria-hidden="true"
+        className="hypatia-watermark pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden"
+      >
+        <span className="hypatia-watermark-text rotate-[-24deg] select-none text-center">
+          HYPATIA
+          <br />
+          REVIEW
+        </span>
       </div>
 
-      <div className="mt-6 grid gap-4 text-sm">
-        <InfoRow label="Application Number" value={submitted.applicationNumber} />
-        <InfoRow label="Name" value={fullName} />
-        <InfoRow label="Address" value={`${submitted.street}, ${submitted.barangay}, ${submitted.cityMunicipality}, ${submitted.province}, ${submitted.zipcode}`} />
-        <InfoRow label="Email Address" value={submitted.email} />
-        <InfoRow label="Contact Number" value={submitted.contactNumber} />
-        <InfoRow label="School Graduated" value={`${submitted.schoolName} | ${submitted.schoolAddress} | ${submitted.yearGraduated} | ${submitted.programCourse}`} />
-        <InfoRow label="Guardian Information" value={`${submitted.guardianFullName} | ${submitted.guardianAddress} | ${submitted.guardianContactNumber}`} />
-        <InfoRow label="Date Submitted" value={formatDate()} />
-      </div>
+      <div className="relative p-6 sm:p-8">
+        {/* Header */}
+        <header className="flex items-start justify-between gap-5 border-b-2 border-double border-[#14294b] pb-5">
+          <div className="grid gap-1">
+            <p className="text-[0.65rem] font-semibold uppercase tracking-[0.34em] text-[#a88237]">
+              Hypatia Review Center
+            </p>
+            <h4 className="font-serif text-2xl font-bold text-[#14294b] sm:text-3xl">
+              Enrollment Confirmation Form
+            </h4>
+            <p className="text-xs text-slate-500 sm:text-sm">
+              Please present this form to the admissions staff for enrollment confirmation.
+            </p>
+          </div>
+          <div className="shrink-0">
+            <PhotoFrame preview={submitted.photoPreview} name={submitted.photoName} printMode />
+          </div>
+        </header>
 
-      <div className="mt-8 grid gap-8 sm:grid-cols-2">
-        <div>
-          <div className="h-20 border-b border-slate-400"></div>
-          <p className="mt-2 text-center text-xs uppercase tracking-[0.2em] text-slate-500">Student Signature</p>
+        {/* Application meta strip */}
+        <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <MetaTile label="Application No." value={submitted.applicationNumber} />
+          <MetaTile label="Date Submitted" value={formatDate()} />
+          <MetaTile label="Status" value="Pending Review" accent />
         </div>
-        <div>
-          <div className="h-20 border-b border-slate-400"></div>
-          <p className="mt-2 text-center text-xs uppercase tracking-[0.2em] text-slate-500">Staff Confirmation</p>
+
+        {/* Sections */}
+        <div className="mt-6 grid gap-5">
+          <FormSection title="Personal Information">
+            <Detail label="Full Name" value={fullName} />
+            <Detail label="Sex" value={submitted.sex} />
+            <Detail label="Birthday" value={submitted.birthday} />
+            <Detail label="Birth Place" value={submitted.birthPlace} />
+            <Detail label="Complete Address" value={fullAddress} colSpan />
+            <Detail label="Email Address" value={submitted.email} />
+            <Detail label="Contact Number" value={submitted.contactNumber} />
+          </FormSection>
+
+          <FormSection title="School & Program">
+            <Detail label="School Name" value={submitted.schoolName} />
+            <Detail label="School Address" value={submitted.schoolAddress} />
+            <Detail label="Year Graduated" value={submitted.yearGraduated} />
+            <Detail label="Program / Course" value={submitted.programCourse} highlight />
+          </FormSection>
+
+          <FormSection title="Guardian Information">
+            <Detail label="Full Name" value={submitted.guardianFullName} />
+            <Detail label="Address" value={submitted.guardianAddress} />
+            <Detail label="Contact Number" value={submitted.guardianContactNumber} />
+          </FormSection>
         </div>
+
+        {/* Signatures */}
+        <div className="mt-8 grid gap-8 sm:grid-cols-2">
+          <Signature label="Student Signature" />
+          <Signature label="Staff Confirmation" />
+        </div>
+
+        {/* Footer */}
+        <footer className="mt-8 flex flex-col items-center gap-1 border-t border-slate-200 pt-4 text-center">
+          <p className="text-[0.65rem] font-semibold uppercase tracking-[0.28em] text-[#a88237]">
+            Hypatia Review Center
+          </p>
+          <p className="text-[0.65rem] text-slate-400">
+            This document is system-generated. Verify authenticity with the admissions office.
+          </p>
+        </footer>
       </div>
     </section>
   );
 }
 
-function InfoRow({ label, value }: { label: string; value: string }) {
+function MetaTile({
+  label,
+  value,
+  accent = false,
+}: {
+  label: string;
+  value: string;
+  accent?: boolean;
+}) {
   return (
-    <div className="grid gap-1 border-b border-slate-200 pb-3 sm:grid-cols-[180px_1fr] sm:gap-4">
-      <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{label}</span>
-      <span className="text-slate-800">{value}</span>
+    <div
+      className={[
+        "rounded-xl border px-4 py-2.5",
+        accent
+          ? "border-amber-200 bg-amber-50"
+          : "border-slate-200 bg-slate-50",
+      ].join(" ")}
+    >
+      <p className="text-[0.6rem] font-semibold uppercase tracking-[0.18em] text-slate-500">
+        {label}
+      </p>
+      <p
+        className={[
+          "mt-0.5 truncate text-sm font-semibold",
+          accent ? "text-amber-700" : "text-[#14294b]",
+        ].join(" ")}
+      >
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function FormSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="overflow-hidden rounded-xl border border-slate-200">
+      <h5 className="bg-[#14294b] px-4 py-2 text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-white">
+        {title}
+      </h5>
+      <div className="grid grid-cols-1 gap-x-6 gap-y-3 p-4 sm:grid-cols-2">
+        {children}
+      </div>
+    </section>
+  );
+}
+
+function Detail({
+  label,
+  value,
+  colSpan = false,
+  highlight = false,
+}: {
+  label: string;
+  value: string;
+  colSpan?: boolean;
+  highlight?: boolean;
+}) {
+  return (
+    <div className={colSpan ? "sm:col-span-2" : ""}>
+      <p className="text-[0.6rem] font-semibold uppercase tracking-[0.18em] text-slate-500">
+        {label}
+      </p>
+      <p
+        className={[
+          "mt-0.5 break-words text-sm",
+          highlight
+            ? "rounded-md bg-amber-50 px-1.5 py-0.5 font-bold text-amber-800"
+            : "font-medium text-slate-800",
+        ].join(" ")}
+      >
+        {value || "—"}
+      </p>
+    </div>
+  );
+}
+
+function Signature({ label }: { label: string }) {
+  return (
+    <div>
+      <div className="h-16 border-b border-slate-400"></div>
+      <p className="mt-2 text-center text-[0.65rem] uppercase tracking-[0.2em] text-slate-500">
+        {label}
+      </p>
     </div>
   );
 }

@@ -20,6 +20,9 @@ model EnrollmentApplication {
   lastName             String
   firstName            String
   middleName           String
+  sex                  String?
+  birthday             String?
+  birthPlace           String?
   street               String
   barangay             String
   cityMunicipality     String
