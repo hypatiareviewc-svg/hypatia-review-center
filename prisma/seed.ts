@@ -1,4 +1,5 @@
 import "dotenv/config";
+import bcrypt from "bcryptjs";
 import { prisma } from "../lib/prisma";
 
 async function main() {
@@ -57,6 +58,19 @@ async function main() {
   });
 
   console.log("Seeded enrollment applications");
+
+  // Seed admin user (username: admin, password: admin123)
+  const adminPassword = await bcrypt.hash("admin123", 12);
+  await prisma.adminUser.upsert({
+    where: { username: "admin" },
+    update: {},
+    create: {
+      username: "admin",
+      password: adminPassword,
+      name: "Administrator",
+    },
+  });
+  console.log("Seeded admin user (username: admin, password: admin123)");
 }
 
 main()

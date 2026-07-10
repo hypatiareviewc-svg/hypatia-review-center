@@ -38,6 +38,8 @@ model EnrollmentApplication {
   guardianAddress      String
   guardianContactNumber String
   status               EnrollmentStatus @default(PENDING)
+  tuitionFee           Decimal? @db.Decimal(12, 2)
+  amountPaid           Decimal? @db.Decimal(12, 2) @default(0)
   submittedAt          DateTime @default(now())
   updatedAt            DateTime @updatedAt
 }
@@ -47,4 +49,13 @@ enum EnrollmentStatus {
   REVIEWING
   APPROVED
   REJECTED
+}
+
+model AdminUser {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  password  String
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

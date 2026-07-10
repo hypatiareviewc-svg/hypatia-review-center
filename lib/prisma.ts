@@ -26,20 +26,22 @@ function createPrismaClient(): PrismaClient {
   return client;
 }
 
-function getPrismaClient(): PrismaClient {
+/**
+ * Lazily resolve the Prisma client on first use.
+ *
+ * Importing this module during the build (page data collection) must NOT
+ * require DATABASE_URL to be set, so the client is only created when
+ * accessed at runtime — via the `getPrismaClient()` function or the
+ * `prisma` export below.
+ *
+ * We intentionally do NOT use a Proxy because it does not behave
+ * correctly on Netlify's serverless runtime.
+ */
+export function getPrismaClient(): PrismaClient {
   if (!globalForPrisma.prisma) {
     globalForPrisma.prisma = createPrismaClient();
   }
   return globalForPrisma.prisma;
 }
 
-// Lazily resolve the Prisma client on first use. Importing this module during
-// the build (page data collection) must never require DATABASE_URL to be set,
-// so the client is only created when a request actually accesses it.
-export const prisma = new Proxy({} as PrismaClient, {
-  get(_target, property) {
-    const client = getPrismaClient();
-    const value = Reflect.get(client, property, client);
-    return typeof value === "function" ? value.bind(client) : value;
-  },
-});
+export const prisma = getPrismaClient();
