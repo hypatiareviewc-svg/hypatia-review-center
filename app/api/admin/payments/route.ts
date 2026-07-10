@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { getPrismaClient } from "@/lib/prisma";
 import { getAdminUser } from "@/lib/admin-session";
 import { createPaymentSchema } from "@/lib/payment-schema";
 import { DEFAULT_TUITION } from "@/lib/financial";
@@ -10,30 +10,6 @@ function formatStudentName(record: {
   middleName: string;
 }) {
   return [record.lastName, record.firstName, record.middleName].filter(Boolean).join(", ");
-}
-
-function serializePayment(
-  payment: Awaited<ReturnType<typeof prisma.payment.create>> & {
-    enrollment: {
-      applicationNumber: string;
-      lastName: string;
-      firstName: string;
-      middleName: string;
-    };
-  },
-) {
-  return {
-    id: payment.id,
-    enrollmentId: payment.enrollmentId,
-    applicationNumber: payment.enrollment.applicationNumber,
-    studentName: formatStudentName(payment.enrollment),
-    amount: Number(payment.amount),
-    method: payment.method,
-    reference: payment.reference,
-    notes: payment.notes,
-    recordedBy: payment.recordedBy,
-    paidAt: payment.paidAt.toISOString(),
-  };
 }
 
 /** POST /api/admin/payments — record a tuition payment (admin only). */
@@ -54,7 +30,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const prisma = getPrismaClient();
     const values = result.data;
+
     const enrollment = await prisma.enrollmentApplication.findUnique({
       where: { id: values.enrollmentId },
       select: {
@@ -85,39 +63,62 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const payment = await prisma.$transaction(async (tx) => {
-      const created = await tx.payment.create({
-        data: {
-          enrollmentId: values.enrollmentId,
-          amount: values.amount,
-          method: values.method,
-          reference: values.reference,
-          notes: values.notes,
-          recordedBy: admin.name,
-          paidAt: values.paidAt ? new Date(values.paidAt) : new Date(),
-        },
-        include: {
-          enrollment: {
-            select: {
-              applicationNumber: true,
-              lastName: true,
-              firstName: true,
-              middleName: true,
-            },
-          },
-        },
-      });
+    const paidAt = values.paidAt ? new Date(values.paidAt) : new Date();
 
-      await tx.enrollmentApplication.update({
+    // Insert payment via raw SQL and update amountPaid in a transaction
+    await prisma.$transaction([
+      prisma.$executeRaw`
+        INSERT INTO "Payment" (id, "enrollmentId", amount, method, reference, notes, "recordedBy", "paidAt", "createdAt")
+        VALUES (
+          gen_random_uuid()::text,
+          ${values.enrollmentId},
+          ${values.amount},
+          ${values.method}::"PaymentMethod",
+          ${values.reference ?? null},
+          ${values.notes ?? null},
+          ${admin.name},
+          ${paidAt},
+          NOW()
+        )
+      `,
+      prisma.enrollmentApplication.update({
         where: { id: values.enrollmentId },
         data: { amountPaid: newPaid },
-      });
+      }),
+    ]);
 
-      return created;
-    });
+    // Fetch the newly inserted payment to return it
+    type RawPayment = {
+      id: string;
+      enrollmentId: string;
+      amount: string | number;
+      method: string;
+      reference: string | null;
+      notes: string | null;
+      recordedBy: string | null;
+      paidAt: Date;
+    };
+    const [created] = await prisma.$queryRaw<RawPayment[]>`
+      SELECT id, "enrollmentId", amount, method, reference, notes, "recordedBy", "paidAt"
+      FROM "Payment"
+      WHERE "enrollmentId" = ${values.enrollmentId}
+      ORDER BY "paidAt" DESC
+      LIMIT 1
+    `;
 
     return NextResponse.json({
-      payment: serializePayment(payment),
+      payment: {
+        id: created.id,
+        enrollmentId: created.enrollmentId,
+        applicationNumber: enrollment.applicationNumber,
+        studentName: formatStudentName(enrollment),
+        amount: Number(created.amount),
+        method: created.method,
+        reference: created.reference,
+        notes: created.notes,
+        recordedBy: created.recordedBy,
+        paidAt: created.paidAt.toISOString(),
+      },
       amountPaid: newPaid,
       balance: Math.max(tuition - newPaid, 0),
     });

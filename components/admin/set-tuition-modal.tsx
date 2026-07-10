@@ -10,13 +10,18 @@ import { formatCurrency } from "@/lib/format";
 import type { FinancialAccount } from "@/lib/financial-stats";
 
 const formSchema = z.object({
-  tuitionFee: z.coerce
-    .number({ invalid_type_error: "Enter a valid amount." })
-    .min(1, "Tuition must be at least ₱1.")
-    .max(9_999_999, "Amount too large."),
+  tuitionFee: z.preprocess(
+    (v) => (v === "" || v === undefined || v === null ? undefined : Number(v)),
+    z
+      .number({ message: "Enter a valid amount." })
+      .min(1, "Tuition must be at least ₱1.")
+      .max(9_999_999, "Amount too large."),
+  ),
 });
 
-type FormValues = z.infer<typeof formSchema>;
+type FormValues = {
+  tuitionFee: number;
+};
 
 export function SetTuitionModal({
   open,

@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { getPrismaClient } from "@/lib/prisma";
 import { DEFAULT_TUITION, getBalance, getBalanceStatus } from "@/lib/financial";
 
 export type FinancialAccount = {
@@ -74,41 +74,80 @@ function formatStudentName(record: {
   return [record.lastName, record.firstName, record.middleName].filter(Boolean).join(", ");
 }
 
+// Raw row types coming back from $queryRaw
+type RawPayment = {
+  id: string;
+  enrollmentId: string;
+  amount: string | number;
+  method: string;
+  reference: string | null;
+  notes: string | null;
+  recordedBy: string | null;
+  paidAt: Date;
+  applicationNumber: string;
+  lastName: string;
+  firstName: string;
+  middleName: string;
+};
+
+type RawLastPayment = {
+  enrollmentId: string;
+  paidAt: Date;
+};
+
 export async function getFinancialReport(): Promise<FinancialReport> {
-  const [enrollments, payments] = await Promise.all([
-    prisma.enrollmentApplication.findMany({
-      orderBy: { submittedAt: "desc" },
-      select: {
-        id: true,
-        applicationNumber: true,
-        lastName: true,
-        firstName: true,
-        middleName: true,
-        programCourse: true,
-        status: true,
-        tuitionFee: true,
-        amountPaid: true,
-        payments: {
-          orderBy: { paidAt: "desc" },
-          take: 1,
-          select: { paidAt: true },
-        },
-      },
-    }),
-    prisma.payment.findMany({
-      orderBy: { paidAt: "desc" },
-      include: {
-        enrollment: {
-          select: {
-            applicationNumber: true,
-            lastName: true,
-            firstName: true,
-            middleName: true,
-          },
-        },
-      },
-    }),
+  const prisma = getPrismaClient();
+
+  // Fetch enrollments — no `payments` relation select (stale client doesn't know it)
+  const enrollments = await prisma.enrollmentApplication.findMany({
+    orderBy: { submittedAt: "desc" },
+    select: {
+      id: true,
+      applicationNumber: true,
+      lastName: true,
+      firstName: true,
+      middleName: true,
+      programCourse: true,
+      status: true,
+      tuitionFee: true,
+      amountPaid: true,
+    },
+  });
+
+  // Fetch payments via raw SQL — works even with a stale generated client
+  const [rawPayments, rawLastPayments] = await Promise.all([
+    prisma.$queryRaw<RawPayment[]>`
+      SELECT
+        p.id,
+        p."enrollmentId",
+        p.amount,
+        p.method,
+        p.reference,
+        p.notes,
+        p."recordedBy",
+        p."paidAt",
+        e."applicationNumber",
+        e."lastName",
+        e."firstName",
+        e."middleName"
+      FROM "Payment" p
+      JOIN "EnrollmentApplication" e ON e.id = p."enrollmentId"
+      ORDER BY p."paidAt" DESC
+    `,
+    prisma.$queryRaw<RawLastPayment[]>`
+      SELECT DISTINCT ON ("enrollmentId")
+        "enrollmentId",
+        "paidAt"
+      FROM "Payment"
+      ORDER BY "enrollmentId", "paidAt" DESC
+    `,
   ]);
+
+  // Build a map of enrollmentId -> lastPaymentAt for O(1) lookup
+  const lastPaymentMap = new Map<string, Date>();
+  for (const row of rawLastPayments) {
+    lastPaymentMap.set(row.enrollmentId, row.paidAt);
+  }
 
   let totalTuitionAssessed = 0;
   let totalCollected = 0;
@@ -122,7 +161,11 @@ export async function getFinancialReport(): Promise<FinancialReport> {
     const tuitionFee = e.tuitionFee ? Number(e.tuitionFee) : DEFAULT_TUITION;
     const amountPaid = e.amountPaid ? Number(e.amountPaid) : 0;
     const balance = getBalance(tuitionFee, amountPaid);
-    const balanceStatus = getBalanceStatus(e.tuitionFee?.toString() ?? null, amountPaid, hasExplicitTuition);
+    const balanceStatus = getBalanceStatus(
+      e.tuitionFee?.toString() ?? null,
+      amountPaid,
+      hasExplicitTuition,
+    );
 
     totalTuitionAssessed += tuitionFee;
     totalCollected += amountPaid;
@@ -131,6 +174,8 @@ export async function getFinancialReport(): Promise<FinancialReport> {
     if (balanceStatus === "PAID") fullyPaidCount += 1;
     else if (balanceStatus === "PARTIAL") partialCount += 1;
     else if (balanceStatus === "UNPAID") unpaidCount += 1;
+
+    const lastPaidAt = lastPaymentMap.get(e.id);
 
     return {
       id: e.id,
@@ -143,15 +188,15 @@ export async function getFinancialReport(): Promise<FinancialReport> {
       balance,
       balanceStatus,
       hasExplicitTuition,
-      lastPaymentAt: e.payments[0]?.paidAt.toISOString() ?? null,
+      lastPaymentAt: lastPaidAt ? lastPaidAt.toISOString() : null,
     };
   });
 
-  const paymentRecords: PaymentRecord[] = payments.map((p) => ({
+  const paymentRecords: PaymentRecord[] = rawPayments.map((p) => ({
     id: p.id,
     enrollmentId: p.enrollmentId,
-    applicationNumber: p.enrollment.applicationNumber,
-    studentName: formatStudentName(p.enrollment),
+    applicationNumber: p.applicationNumber,
+    studentName: formatStudentName(p),
     amount: Number(p.amount),
     method: p.method,
     reference: p.reference,
@@ -164,7 +209,7 @@ export async function getFinancialReport(): Promise<FinancialReport> {
   const monthlyMap = new Map<string, number>();
   for (const key of months) monthlyMap.set(key, 0);
 
-  for (const p of payments) {
+  for (const p of rawPayments) {
     const key = monthKey(p.paidAt);
     if (monthlyMap.has(key)) {
       monthlyMap.set(key, (monthlyMap.get(key) ?? 0) + Number(p.amount));
@@ -184,7 +229,7 @@ export async function getFinancialReport(): Promise<FinancialReport> {
       fullyPaidCount,
       partialCount,
       unpaidCount,
-      paymentCount: payments.length,
+      paymentCount: rawPayments.length,
       collectionRate,
     },
     accounts,
