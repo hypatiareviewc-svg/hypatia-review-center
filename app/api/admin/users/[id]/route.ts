@@ -90,14 +90,22 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ message: "You cannot delete your own account." }, { status: 400 });
   }
 
+  // Prevent deleting the super admin (admin@hrc.com)
+  const targetUser = await prisma.adminUser.findUnique({
+    where: { id },
+    select: { id: true, username: true },
+  });
+  if (!targetUser) return NextResponse.json({ message: "User not found." }, { status: 404 });
+
+  if (targetUser.username === "admin@hrc.com") {
+    return NextResponse.json({ message: "The super admin account cannot be deleted." }, { status: 403 });
+  }
+
   // Prevent deleting the last admin
   const count = await prisma.adminUser.count();
   if (count <= 1) {
     return NextResponse.json({ message: "Cannot delete the last admin account." }, { status: 400 });
   }
-
-  const exists = await prisma.adminUser.findUnique({ where: { id }, select: { id: true } });
-  if (!exists) return NextResponse.json({ message: "User not found." }, { status: 404 });
 
   await prisma.adminUser.delete({ where: { id } });
   return NextResponse.json({ message: "User deleted." });

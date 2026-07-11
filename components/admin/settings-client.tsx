@@ -356,7 +356,7 @@ function UsersTab({ currentAdminId }: { currentAdminId: string }) {
                   <p className="text-[0.65rem] text-[var(--muted)]">
                     Joined {new Intl.DateTimeFormat("en-PH", { month: "short", year: "numeric" }).format(new Date(user.createdAt))}
                   </p>
-                  {user.id !== currentAdminId && (
+                  {user.id !== currentAdminId && user.username !== "admin@hrc.com" && (
                     <button type="button" onClick={() => setDeleteTarget(user)}
                       className="focus-ring mt-1.5 inline-flex items-center gap-1 rounded-lg border border-red-200 bg-red-50 px-2.5 py-1 text-[0.65rem] font-semibold text-red-600 hover:bg-red-100">
                       <Trash2 className="h-3 w-3" /> Remove
