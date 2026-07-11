@@ -12,24 +12,14 @@ import type { FinancialAccount } from "@/lib/financial-stats";
 
 const formSchema = z.object({
   enrollmentId: z.string().min(1, "Select a student."),
-  amount: z.preprocess(
-    (v) => (v === "" || v === undefined || v === null ? undefined : Number(v)),
-    z.number({ message: "Enter a valid amount." }).positive("Enter a valid amount."),
-  ),
+  amount: z.number({ message: "Enter a valid amount." }).positive("Enter a valid amount."),
   method: z.enum(["CASH", "BANK_TRANSFER", "GCASH", "MAYA", "CHECK", "OTHER"]),
   reference: z.string().max(120).optional(),
   notes: z.string().max(500).optional(),
   paidAt: z.string().optional(),
 });
 
-type FormValues = {
-  enrollmentId: string;
-  amount: number;
-  method: "CASH" | "BANK_TRANSFER" | "GCASH" | "MAYA" | "CHECK" | "OTHER";
-  reference?: string;
-  notes?: string;
-  paidAt?: string;
-};
+type FormValues = z.infer<typeof formSchema>;
 
 export function RecordPaymentModal({
   open,
@@ -213,7 +203,7 @@ export function RecordPaymentModal({
                       max={remaining > 0 ? remaining : undefined}
                       placeholder="0"
                       className="focus-ring w-full rounded-lg border border-[var(--border)] bg-[var(--background)] py-2 pl-6 pr-2.5 text-xs"
-                      {...register("amount")}
+                      {...register("amount", { valueAsNumber: true })}
                     />
                   </div>
                   {errors.amount
