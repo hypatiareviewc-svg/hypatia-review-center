@@ -161,6 +161,7 @@ export function AdminTopbar({
                 <li>
                   <button
                     type="button"
+                    onClick={() => { setProfileOpen(false); router.push("/admin/profile"); }}
                     className="flex w-full items-center gap-3 px-4 py-2.5 text-[var(--muted)] transition hover:bg-[var(--surface-soft)] hover:text-[var(--foreground)]"
                   >
                     <User className="h-4 w-4" />
@@ -170,6 +171,7 @@ export function AdminTopbar({
                 <li>
                   <button
                     type="button"
+                    onClick={() => { setProfileOpen(false); router.push("/admin/settings"); }}
                     className="flex w-full items-center gap-3 px-4 py-2.5 text-[var(--muted)] transition hover:bg-[var(--surface-soft)] hover:text-[var(--foreground)]"
                   >
                     <Settings className="h-4 w-4" />
