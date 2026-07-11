@@ -26,18 +26,21 @@ const PRINT_STYLE = `
   body > *:not(#id-print-root) { display: none !important; }
   #id-print-root {
     display: flex !important;
-    flex-direction: column;
-    align-items: center;
-    gap: 8mm;
-    padding: 8mm;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 6mm;
+    padding: 5mm;
   }
   .id-print-pair {
     display: flex;
-    gap: 6mm;
+    flex-direction: row;
+    gap: 4mm;
     page-break-inside: avoid;
   }
   .id-card-face {
     box-shadow: none !important;
+    border: 1px solid #e2e8f0 !important;
   }
 }
 `;

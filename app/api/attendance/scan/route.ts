@@ -169,7 +169,17 @@ export async function GET(request: NextRequest) {
   if (sessionId) {
     const session = await (db as any).attendanceSession.findUnique({
       where: { id: sessionId },
-      select: { id: true, title: true, description: true, sessionDate: true },
+      select: { 
+        id: true, 
+        title: true, 
+        description: true, 
+        sessionDate: true,
+        morningIn: true,
+        morningOut: true,
+        afternoonIn: true,
+        afternoonOut: true,
+        lateMinutes: true,
+      },
     });
     if (!session) return NextResponse.json({ message: "Session not found." }, { status: 404 });
     return NextResponse.json({
@@ -177,6 +187,11 @@ export async function GET(request: NextRequest) {
       title: session.title,
       description: session.description,
       sessionDate: session.sessionDate.toISOString(),
+      morningIn: session.morningIn,
+      morningOut: session.morningOut,
+      afternoonIn: session.afternoonIn,
+      afternoonOut: session.afternoonOut,
+      lateMinutes: session.lateMinutes,
     });
   }
 
@@ -184,14 +199,37 @@ export async function GET(request: NextRequest) {
   const sessions = await (db as any).attendanceSession.findMany({
     orderBy: { sessionDate: "desc" },
     take: 10,
-    select: { id: true, title: true, sessionDate: true },
+    select: { 
+      id: true, 
+      title: true, 
+      sessionDate: true,
+      morningIn: true,
+      morningOut: true,
+      afternoonIn: true,
+      afternoonOut: true,
+      lateMinutes: true,
+    },
   });
 
   return NextResponse.json(
-    sessions.map((s: { id: string; title: string; sessionDate: Date }) => ({
+    sessions.map((s: { 
+      id: string; 
+      title: string; 
+      sessionDate: Date;
+      morningIn: string | null;
+      morningOut: string | null;
+      afternoonIn: string | null;
+      afternoonOut: string | null;
+      lateMinutes: number;
+    }) => ({
       id: s.id,
       title: s.title,
       sessionDate: s.sessionDate.toISOString(),
+      morningIn: s.morningIn,
+      morningOut: s.morningOut,
+      afternoonIn: s.afternoonIn,
+      afternoonOut: s.afternoonOut,
+      lateMinutes: s.lateMinutes,
     })),
   );
 }

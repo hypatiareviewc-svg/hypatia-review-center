@@ -5,17 +5,31 @@ import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertCircle,
+  AlertTriangle,
+  Bell,
+  BellOff,
   CheckCircle2,
   ChevronDown,
   Clock,
   Loader2,
+  Play,
   QrCode,
+  StopCircle,
   UserRound,
   XCircle,
 } from "lucide-react";
 
 /* ─── types ────────────────────────────────────────────────────────────────── */
-type Session = { id: string; title: string; sessionDate: string };
+type Session = { 
+  id: string; 
+  title: string; 
+  sessionDate: string;
+  morningIn?: string | null;
+  morningOut?: string | null;
+  afternoonIn?: string | null;
+  afternoonOut?: string | null;
+  lateMinutes?: number;
+};
 
 type ScanResult = {
   studentName: string;
@@ -60,6 +74,205 @@ export function QrScannerClient() {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Stable ref so the QR callback always sees latest session
   const sessionRef = useRef<Session | null>(null);
+
+  // Countdown & alarm state
+  const [countdownActive, setCountdownActive] = useState(false);
+  const [countdownTarget, setCountdownTarget] = useState<Date | null>(null);
+  const [countdownRemaining, setCountdownRemaining] = useState(0);
+  const [alarmEnabled, setAlarmEnabled] = useState(false);
+  const [alarmTriggered, setAlarmTriggered] = useState(false);
+  const [nextBreak, setNextBreak] = useState<"morning" | "afternoon" | null>(null);
+  const alarmAudioRef = useRef<HTMLAudioElement | null>(null);
+  const alarmIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Play alarm sound using Web Audio API (more reliable than base64)
+  const playAlarmSound = useCallback(() => {
+    try {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+
+      // Alarm-like sound pattern
+      oscillator.frequency.value = 880; // A5 note
+      oscillator.type = "square";
+      
+      // Create beep pattern: beep-beep-beep pause
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.setValueAtTime(0, audioContext.currentTime + 0.2);
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime + 0.4);
+      gainNode.gain.setValueAtTime(0, audioContext.currentTime + 0.6);
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime + 0.8);
+      gainNode.gain.setValueAtTime(0, audioContext.currentTime + 1.0);
+
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 1.2);
+
+      // Repeat for a few times
+      let count = 0;
+      const repeatAlarm = () => {
+        if (count < 3) {
+          const osc2 = audioContext.createOscillator();
+          const gain2 = audioContext.createGain();
+          osc2.connect(gain2);
+          gain2.connect(audioContext.destination);
+          osc2.frequency.value = 880;
+          osc2.type = "square";
+          gain2.gain.setValueAtTime(0.3, audioContext.currentTime + count * 1.5);
+          gain2.gain.setValueAtTime(0, audioContext.currentTime + count * 1.5 + 0.2);
+          osc2.start(audioContext.currentTime + count * 1.5);
+          osc2.stop(audioContext.currentTime + count * 1.5 + 0.25);
+          count++;
+          setTimeout(repeatAlarm, 1500);
+        }
+      };
+      setTimeout(repeatAlarm, 1200);
+    } catch (e) {
+      console.error("Failed to play alarm:", e);
+    }
+  }, []);
+
+  /* ── countdown & alarm logic ───────────────────────────────────────────── */
+  // Calculate next target time based on session settings
+  const calculateNextTarget = useCallback((session: Session): { target: Date; period: "morning" | "afternoon" } | null => {
+    const now = new Date();
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+    // Parse time strings to minutes
+    const parseTime = (t: string | null | undefined) => {
+      if (!t) return null;
+      const [h, m] = t.split(":").map(Number);
+      return h * 60 + m;
+    };
+
+    const morningIn = parseTime(session.morningIn);
+    const morningOut = parseTime(session.morningOut);
+    const afternoonIn = parseTime(session.afternoonIn);
+    const afternoonOut = parseTime(session.afternoonOut);
+
+    // Determine current period
+    let targetPeriod: "morning" | "afternoon" = "morning";
+    let targetMinutes: number | null = null;
+
+    // Check morning period first
+    if (morningIn && morningOut) {
+      if (currentMinutes < morningIn) {
+        // Before morning start - target is morningIn
+        targetMinutes = morningIn;
+        targetPeriod = "morning";
+      } else if (currentMinutes < morningOut) {
+        // During morning session - target is morningOut
+        targetMinutes = morningOut;
+        targetPeriod = "morning";
+      }
+    }
+
+    // Check afternoon period (only if no morning target yet)
+    if (!targetMinutes && afternoonIn && afternoonOut) {
+      if (currentMinutes < afternoonIn) {
+        // Before afternoon start - target is afternoonIn
+        targetMinutes = afternoonIn;
+        targetPeriod = "afternoon";
+      } else if (currentMinutes < afternoonOut) {
+        // During afternoon session - target is afternoonOut
+        targetMinutes = afternoonOut;
+        targetPeriod = "afternoon";
+      }
+    }
+
+    if (!targetMinutes) return null;
+
+    // Build target Date
+    const target = new Date(now);
+    target.setHours(Math.floor(targetMinutes / 60), targetMinutes % 60, 0, 0);
+
+    // If target is in the past today, don't set it
+    if (target <= now) return null;
+
+    return { target, period: targetPeriod };
+  }, []);
+
+  // Start countdown when session changes
+  useEffect(() => {
+    const session = sessionRef.current;
+    if (!session || (!session.morningIn && !session.afternoonIn)) {
+      setCountdownActive(false);
+      return;
+    }
+
+    const calc = calculateNextTarget(session);
+    if (calc) {
+      setCountdownTarget(calc.target);
+      setCountdownActive(true);
+      setNextBreak(calc.period);
+      setAlarmTriggered(false);
+      // Stop any playing alarm
+      if (alarmAudioRef.current) {
+        alarmAudioRef.current.pause();
+        alarmAudioRef.current.currentTime = 0;
+      }
+    } else {
+      setCountdownActive(false);
+    }
+  }, [selectedSession, calculateNextTarget]);
+
+  // Countdown timer tick
+  useEffect(() => {
+    if (!countdownActive || !countdownTarget) return;
+
+    // Function to handle time's up
+    const handleTimeUp = () => {
+      setCountdownRemaining(0);
+      
+      // Play alarm sound using Web Audio API
+      if (alarmEnabled) {
+        playAlarmSound();
+      }
+
+      setAlarmTriggered(true);
+
+      // Calculate next break if available
+      const session = sessionRef.current;
+      if (session) {
+        const next = calculateNextTarget(session);
+        if (next) {
+          // Add small delay before next countdown
+          setTimeout(() => {
+            setCountdownTarget(next.target);
+            setNextBreak(next.period);
+            setCountdownRemaining(next.target.getTime() - Date.now());
+            setAlarmTriggered(false);
+          }, 3000);
+        } else {
+          setCountdownActive(false);
+        }
+      }
+    };
+
+    const interval = setInterval(() => {
+      const now = new Date();
+      const diff = countdownTarget.getTime() - now.getTime();
+      
+      if (diff <= 0) {
+        handleTimeUp();
+      } else {
+        setCountdownRemaining(diff);
+      }
+    }, 500); // Check every 500ms for more responsive alarm
+
+    return () => clearInterval(interval);
+  }, [countdownActive, countdownTarget, calculateNextTarget]);
+
+  // Stop alarm when disabled
+  useEffect(() => {
+    if (!alarmEnabled && alarmAudioRef.current) {
+      alarmAudioRef.current.pause();
+      alarmAudioRef.current.currentTime = 0;
+      setAlarmTriggered(false);
+    }
+  }, [alarmEnabled]);
 
   /* ── load sessions ──────────────────────────────────────────────────────── */
   useEffect(() => {
@@ -310,6 +523,42 @@ export function QrScannerClient() {
             )}
           </AnimatePresence>
         </div>
+
+        {/* Countdown timer & alarm controls */}
+        {countdownActive && (
+          <div className="flex items-center gap-3 rounded-full border border-white/15 bg-white/8 px-4 py-2 backdrop-blur-sm">
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-white/60" />
+              <span className="font-mono text-sm font-bold text-white">
+                {nextBreak === "morning" ? "Morning" : "Afternoon"}: {" "}
+                {countdownRemaining > 0 ? (
+                  <>
+                    {Math.floor(countdownRemaining / 3600000)}:
+                    {String(Math.floor((countdownRemaining % 3600000) / 60000)).padStart(2, "0")}:
+                    {String(Math.floor((countdownRemaining % 60000) / 1000)).padStart(2, "0")}
+                  </>
+                ) : (
+                  <span className="text-orange-400">Time's up!</span>
+                )}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setAlarmEnabled(!alarmEnabled)}
+              className={`rounded-full p-1.5 transition ${
+                alarmEnabled 
+                  ? "bg-orange-500/30 text-orange-400" 
+                  : "bg-white/10 text-white/40 hover:text-white/60"
+              }`}
+              title={alarmEnabled ? "Alarm enabled" : "Enable alarm"}
+            >
+              {alarmEnabled ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
+            </button>
+          </div>
+        )}
+
+        {/* Hidden alarm audio ref (unused - using Web Audio API now) */}
+        <audio ref={alarmAudioRef} preload="auto" />
       </header>
 
       {/* ── Main ───────────────────────────────────────────────────────────── */}
