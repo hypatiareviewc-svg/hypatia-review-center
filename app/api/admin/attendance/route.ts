@@ -3,10 +3,19 @@ import { z } from "zod";
 import { freshPrismaClient } from "@/lib/prisma";
 import { getAdminUser } from "@/lib/admin-session";
 
+// Time string format: "HH:mm"
+const timeString = z.string().regex(/^([01]?\d|2[0-3]):[0-5]\d$/, "Use 24-hour format like 08:00").optional();
+
 const createSessionSchema = z.object({
   title: z.string().min(1, "Title is required.").max(120),
   description: z.string().max(500).optional(),
   sessionDate: z.string().min(1, "Session date is required."),
+  // Time settings
+  morningIn: timeString,
+  morningOut: timeString,
+  afternoonIn: timeString,
+  afternoonOut: timeString,
+  lateMinutes: z.number().int().min(1).max(120).default(15),
 });
 
 function serializeSession(s: {
@@ -17,6 +26,11 @@ function serializeSession(s: {
   createdBy: string | null;
   createdAt: Date;
   updatedAt: Date;
+  morningIn: string | null;
+  morningOut: string | null;
+  afternoonIn: string | null;
+  afternoonOut: string | null;
+  lateMinutes: number;
   _count?: { records: number };
 }) {
   return {
@@ -27,6 +41,11 @@ function serializeSession(s: {
     createdBy: s.createdBy,
     createdAt: s.createdAt.toISOString(),
     updatedAt: s.updatedAt.toISOString(),
+    morningIn: s.morningIn,
+    morningOut: s.morningOut,
+    afternoonIn: s.afternoonIn,
+    afternoonOut: s.afternoonOut,
+    lateMinutes: s.lateMinutes,
     _count: s._count,
   };
 }
@@ -66,6 +85,12 @@ export async function POST(request: NextRequest) {
       description: result.data.description ?? null,
       sessionDate: new Date(result.data.sessionDate),
       createdBy: admin.name,
+      // Time settings
+      morningIn: result.data.morningIn ?? null,
+      morningOut: result.data.morningOut ?? null,
+      afternoonIn: result.data.afternoonIn ?? null,
+      afternoonOut: result.data.afternoonOut ?? null,
+      lateMinutes: result.data.lateMinutes ?? 15,
     },
     include: { _count: { select: { records: true } } },
   });

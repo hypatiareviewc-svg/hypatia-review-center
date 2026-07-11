@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  AlertCircle,
   CheckCircle2,
   ChevronDown,
   Clock,
@@ -24,6 +25,8 @@ type ScanResult = {
   sessionTitle: string;
   alreadyRecorded: string | null;
   scannedAt?: string;
+  isLate?: boolean;
+  latePeriod?: string | null;
 };
 
 type ScanState = "idle" | "starting" | "scanning" | "loading" | "success" | "duplicate" | "error";
@@ -471,18 +474,35 @@ export function QrScannerClient() {
                   <div className={[
                     "flex items-center gap-3 border-b px-5 py-3",
                     scanState === "success"
-                      ? "border-emerald-500/20 bg-emerald-500/15"
+                      ? (scanResult.isLate ? "border-orange-500/30 bg-orange-900/30" : "border-emerald-500/20 bg-emerald-500/15")
                       : "border-amber-500/20 bg-amber-500/15",
                   ].join(" ")}>
                     {scanState === "success" ? (
-                      <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-400" />
+                      scanResult.isLate ? (
+                        <AlertCircle className="h-5 w-5 shrink-0 text-orange-400" />
+                      ) : (
+                        <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-400" />
+                      )
                     ) : (
                       <Clock className="h-5 w-5 shrink-0 text-amber-400" />
                     )}
-                    <div>
-                      <p className={`text-sm font-bold ${scanState === "success" ? "text-emerald-300" : "text-amber-300"}`}>
-                        {scanState === "success" ? "Attendance Recorded!" : "Already Marked Present"}
-                      </p>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className={`text-sm font-bold ${
+                          scanState === "success" 
+                            ? (scanResult.isLate ? "text-orange-300" : "text-emerald-300") 
+                            : "text-amber-300"
+                        }`}>
+                          {scanState === "success" 
+                            ? (scanResult.isLate ? "Late Arrival!" : "Attendance Recorded!")
+                            : "Already Marked Present"}
+                        </p>
+                        {scanResult.isLate && (
+                          <span className="rounded-full bg-orange-500/20 px-2 py-0.5 text-[0.6rem] font-bold uppercase tracking-wide text-orange-300 border border-orange-500/30">
+                            {scanResult.latePeriod || "Late"}
+                          </span>
+                        )}
+                      </div>
                       <p className="text-[0.65rem] text-white/40">
                         {scanState === "success"
                           ? `Logged at ${scanResult.scannedAt ? fmtTime(scanResult.scannedAt) : "—"}`

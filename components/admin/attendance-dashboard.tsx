@@ -35,10 +35,19 @@ function fmtTime(iso: string) {
 }
 
 /* ── new session form ─────────────────────────────────────────────────────── */
+// Time string validation: "HH:mm" format
+const timePattern = /^([01]?\d|2[0-3]):[0-5]\d$/;
+
 const sessionSchema = z.object({
   title: z.string().min(1, "Title is required.").max(120),
   description: z.string().max(500).optional(),
   sessionDate: z.string().min(1, "Date is required."),
+  // Time settings
+  morningIn: z.string().regex(timePattern, "Use 24-hour format like 08:00").optional().or(z.literal("")),
+  morningOut: z.string().regex(timePattern, "Use 24-hour format like 12:00").optional().or(z.literal("")),
+  afternoonIn: z.string().regex(timePattern, "Use 24-hour format like 13:00").optional().or(z.literal("")),
+  afternoonOut: z.string().regex(timePattern, "Use 24-hour format like 17:00").optional().or(z.literal("")),
+  lateMinutes: z.number().int().min(1).max(120),
 });
 type SessionForm = z.infer<typeof sessionSchema>;
 
@@ -366,11 +375,22 @@ function CreateSessionModal({
     setSubmitting(true);
     setError(null);
     try {
+      // Filter out empty time strings before sending
+      const timeFields = ["morningIn", "morningOut", "afternoonIn", "afternoonOut"] as const;
+      const cleaned: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(values)) {
+        if (timeFields.includes(key as typeof timeFields[number])) {
+          if (value && value !== "") cleaned[key] = value;
+        } else {
+          cleaned[key] = value;
+        }
+      }
+      
       const res = await fetch("/api/admin/attendance", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...values,
+          ...cleaned,
           sessionDate: new Date(values.sessionDate + "T00:00:00").toISOString(),
         }),
       });
@@ -424,6 +444,45 @@ function CreateSessionModal({
             <label className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Description <span className="normal-case font-normal opacity-60">(optional)</span></label>
             <textarea rows={2} className="focus-ring w-full resize-none rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs" {...register("description")} />
           </div>
+
+          {/* Time Settings */}
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-3">
+            <p className="mb-3 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">Time Settings</p>
+            <div className="grid grid-cols-2 gap-2.5">
+              {/* Morning */}
+              <div className="grid gap-1">
+                <label className="text-[0.6rem] text-[var(--muted)]">Morning In</label>
+                <input type="time" className="focus-ring rounded-lg border border-[var(--border)] bg-[var(--background)] px-2 py-1.5 text-xs" {...register("morningIn")} />
+              </div>
+              <div className="grid gap-1">
+                <label className="text-[0.6rem] text-[var(--muted)]">Morning Out</label>
+                <input type="time" className="focus-ring rounded-lg border border-[var(--border)] bg-[var(--background)] px-2 py-1.5 text-xs" {...register("morningOut")} />
+              </div>
+              {/* Afternoon */}
+              <div className="grid gap-1">
+                <label className="text-[0.6rem] text-[var(--muted)]">Afternoon In</label>
+                <input type="time" className="focus-ring rounded-lg border border-[var(--border)] bg-[var(--background)] px-2 py-1.5 text-xs" {...register("afternoonIn")} />
+              </div>
+              <div className="grid gap-1">
+                <label className="text-[0.6rem] text-[var(--muted)]">Afternoon Out</label>
+                <input type="time" className="focus-ring rounded-lg border border-[var(--border)] bg-[var(--background)] px-2 py-1.5 text-xs" {...register("afternoonOut")} />
+              </div>
+            </div>
+            {/* Late threshold */}
+            <div className="mt-2.5 grid gap-1">
+              <label className="text-[0.6rem] text-[var(--muted)]">Late Threshold (minutes)</label>
+              <input 
+                type="number" 
+                min="1" 
+                max="120" 
+                className="focus-ring w-20 rounded-lg border border-[var(--border)] bg-[var(--background)] px-2 py-1.5 text-xs" 
+                {...register("lateMinutes", { valueAsNumber: true })} 
+                defaultValue={15}
+              />
+              <p className="text-[0.55rem] text-[var(--muted)]">Students arriving after this many minutes are marked as late</p>
+            </div>
+          </div>
+
           {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-[0.72rem] text-red-700">{error}</div>}
           <div className="flex justify-end gap-2 border-t border-[var(--border)] pt-3">
             <button type="button" onClick={onClose} disabled={submitting} className="focus-ring h-8 rounded-full border border-[var(--border)] bg-[var(--background)] px-4 text-xs font-semibold text-[var(--foreground)]">Cancel</button>

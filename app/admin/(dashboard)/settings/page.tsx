@@ -1,6 +1,11 @@
-import { Settings as SettingsIcon } from "lucide-react";
+import { redirect } from "next/navigation";
+import { getAdminUser } from "@/lib/admin-session";
+import { SettingsClient } from "@/components/admin/settings-client";
 
-export default function SettingsPage() {
+export default async function SettingsPage() {
+  const admin = await getAdminUser();
+  if (!admin) redirect("/admin/login");
+
   return (
     <div className="space-y-6">
       <div>
@@ -11,18 +16,8 @@ export default function SettingsPage() {
           Manage admin account, preferences, and system configuration.
         </p>
       </div>
-      <div className="surface-card flex flex-col items-center justify-center rounded-2xl px-6 py-16 text-center">
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--surface-soft)] text-[var(--primary)]">
-          <SettingsIcon className="h-7 w-7" />
-        </div>
-        <h2 className="mt-4 font-serif text-xl font-semibold text-[var(--foreground)]">
-          System Settings
-        </h2>
-        <p className="mt-2 max-w-sm text-sm text-[var(--muted)]">
-          Account preferences, password changes, and website configuration options
-          are coming next.
-        </p>
-      </div>
+
+      <SettingsClient admin={admin} />
     </div>
   );
 }

@@ -113,14 +113,22 @@ enum CalendarEventType {
 }
 
 model AttendanceSession {
-  id          String       @id @default(cuid())
-  title       String
-  description String?
-  sessionDate DateTime
-  createdBy   String?
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  records     AttendanceRecord[]
+  id              String   @id @default(cuid())
+  title           String
+  description     String?
+  sessionDate     DateTime
+  createdBy       String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Time settings for attendance tracking (stored as HH:mm strings)
+  morningIn       String?  // e.g. "08:00"
+  morningOut      String?  // e.g. "12:00"
+  afternoonIn     String?  // e.g. "13:00"
+  afternoonOut    String?  // e.g. "17:00"
+  lateMinutes     Int      @default(15) // minutes after start time to mark as late
+
+  records         AttendanceRecord[]
 
   @@index([sessionDate])
 }
@@ -135,6 +143,10 @@ model AttendanceRecord {
   programCourse     String
   photoUrl          String?
   scannedAt         DateTime          @default(now())
+
+  // Late detection
+  isLate            Boolean           @default(false) // true if scanned after lateMinutes threshold
+  latePeriod        String?           // "morning" or "afternoon" depending on scan time
 
   @@unique([sessionId, enrollmentId])
   @@index([sessionId])

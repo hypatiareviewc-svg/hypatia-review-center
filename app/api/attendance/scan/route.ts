@@ -45,10 +45,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "Student is not enrolled." }, { status: 403 });
   }
 
-  // 2. Check session exists
+  // 2. Check session exists (with time settings)
   const session = await (db as any).attendanceSession.findUnique({
     where: { id: sessionId },
-    select: { id: true, title: true },
+    select: { 
+      id: true, 
+      title: true, 
+      morningIn: true, 
+      afternoonIn: true, 
+      lateMinutes: true 
+    },
   });
   if (!session) {
     return NextResponse.json({ message: "Session not found." }, { status: 404 });
@@ -61,7 +67,7 @@ export async function POST(request: NextRequest) {
   // 3. Check if already recorded (unique constraint sessionId + enrollmentId)
   const existing = await (db as any).attendanceRecord.findUnique({
     where: { sessionId_enrollmentId: { sessionId, enrollmentId: student.id } },
-    select: { scannedAt: true },
+    select: { scannedAt: true, isLate: true, latePeriod: true },
   });
 
   if (existing) {
@@ -73,10 +79,58 @@ export async function POST(request: NextRequest) {
       programCourse: student.programCourse,
       photoUrl: student.photoUrl,
       sessionTitle: session.title,
+      isLate: existing.isLate,
+      latePeriod: existing.latePeriod,
     });
   }
 
-  // 4. Record attendance
+  // 4. Calculate if late
+  const now = new Date();
+  const currentHour = now.getHours();
+  const currentMinute = now.getMinutes();
+  const currentTimeMinutes = currentHour * 60 + currentMinute;
+
+  let isLate = false;
+  let latePeriod: string | null = null;
+
+  const lateMinutes = session.lateMinutes ?? 15;
+
+  // Check morning period
+  if (session.morningIn) {
+    const [h, m] = session.morningIn.split(":").map(Number);
+    const startMinutes = h * 60 + m;
+    const lateThreshold = startMinutes + lateMinutes;
+    
+    if (currentTimeMinutes <= parseInt(session.morningOut?.split(":").join("") || "1200") / 100) {
+      // Still in morning period
+      if (currentTimeMinutes > lateThreshold) {
+        isLate = true;
+        latePeriod = "morning";
+      }
+    }
+  }
+
+  // Check afternoon period if not already marked late in morning
+  if (!isLate && session.afternoonIn) {
+    const [h, m] = session.afternoonIn.split(":").map(Number);
+    const startMinutes = h * 60 + m;
+    const lateThreshold = startMinutes + lateMinutes;
+    
+    if (currentTimeMinutes >= startMinutes) {
+      if (currentTimeMinutes > lateThreshold) {
+        isLate = true;
+        latePeriod = "afternoon";
+      }
+    }
+  }
+
+  // If no time settings configured, default to not late
+  if (!session.morningIn && !session.afternoonIn) {
+    isLate = false;
+    latePeriod = null;
+  }
+
+  // 5. Record attendance
   const record = await (db as any).attendanceRecord.create({
     data: {
       sessionId,
@@ -85,6 +139,8 @@ export async function POST(request: NextRequest) {
       studentName,
       programCourse: student.programCourse,
       photoUrl: student.photoUrl,
+      isLate,
+      latePeriod,
     },
   });
 
@@ -97,6 +153,8 @@ export async function POST(request: NextRequest) {
     photoUrl: student.photoUrl,
     sessionTitle: session.title,
     scannedAt: record.scannedAt.toISOString(),
+    isLate: record.isLate,
+    latePeriod: record.latePeriod,
   });
 }
 
